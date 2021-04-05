@@ -1,2 +1,7 @@
-# coursera-ddp-project1
-Coursera - Developing Data Products
+# Coursera - Developing Data Products Project 1
+
+In this assignment, you wil have to create a web page using R Markdown that features a map created with Leaflet. 
+
+Host your webpage on either GitHub Pages, RPubs, or NeoCities.
+
+Your webpage must contain the date that you created the document, and it must contain a map created with Leaflet. We would love to see you show off your creativity! 
