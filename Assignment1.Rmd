@@ -1,0 +1,37 @@
+---
+title: "Coronavirus (COVID-19) Visualization"
+author: "dillonchewwx"
+date: "04/04/2021"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+---
+
+# Overview
+
+During this pandemic, most of the reports which we get are often through the media. However, these reports tend to be inaccurate and inconsistent as they tend to cherry-pick the statistics and graphs to generate attention grabbing headlines. As such, to get an accurate and reliable picture of the current impact of COVID-19, we should pull the data directly from a reliable source and analyze it. In this report, we will obtain data directly from [Our World in Data](https://ourworldindata.org/coronavirus-source-data) which relies on data from [Johns Hopkins University](https://coronavirus.jhu.edu/map.html) and visualize them using the `plotly` and `leaflet` packages in R. 
+
+## Load Packages
+```{r Load Packages, message=FALSE, results='hide', warning=FALSE}
+library(tidyverse)
+library(leaflet)
+library(lubridate)
+library(plotly)
+```
+
+## Load and Explore Data
+```{r Load Data, warning=FALSE, message=FALSE}
+# Load Data
+data<-read_csv("https://covid.ourworldindata.org/data/owid-covid-data.csv")
+glimpse(data)
+```
+To visualize the data, we shall use a Choropleth Map to show the number of events (e.g. Cases/Deaths) for each country. 
+```{r Tree Plot, fig.height=10, fig.width=10}
+plot_ly(data, 
+        type="choropleth", 
+        locations=data$iso_code, 
+        z=data$total_cases, 
+        text=data$location, 
+        colorscale="Blues")
+```
