@@ -18,6 +18,7 @@ library(tidyverse)
 library(leaflet)
 library(lubridate)
 library(plotly)
+library(rgdal)
 ```
 
 ## Load and Explore Data
@@ -26,12 +27,72 @@ library(plotly)
 data<-read_csv("https://covid.ourworldindata.org/data/owid-covid-data.csv")
 glimpse(data)
 ```
-To visualize the data, we shall use a Choropleth Map to show the number of events (e.g. Cases/Deaths) for each country. 
-```{r Tree Plot, fig.height=10, fig.width=10}
-plot_ly(data, 
-        type="choropleth", 
-        locations=data$iso_code, 
-        z=data$total_cases, 
-        text=data$location, 
-        colorscale="Blues")
+To visualize the most updated data, we shall use a Choropleth Map to show the number of events (e.g. Cases, Deaths etc.) for each country. 
+```{r Plotly Choropleth, warning=FALSE}
+data_today<-data %>%
+  filter(date==today()-2) %>%
+  filter(!str_detect(iso_code, "OWID"))
+
+plot_ly(type="choropleth",
+        locations=data_today$iso_code,
+        z=data_today$total_cases,
+        text=data_today$location,
+        color=data_today$total_cases, 
+        colors="Reds") %>%
+  colorbar(title="Number of Cases", 
+           y=0.75) %>%
+  layout(title=list(text=paste0("Number of COVID-19 cases as of ", today()-2), y=0.9))
+```
+Using the `leaflet` package, we can visualize the data in a similar fashion. We start by first downloading the shapefile and loading the data.
+```{r Download Shapefile, warning=FALSE}
+if(!file.exists("Data/TM_WORLD_BORDERS_SIMPL-0.3.shp")){
+  download.file("http://thematicmapping.org/downloads/TM_WORLD_BORDERS_SIMPL-0.3.zip", 
+              destfile="Data/world_shape_file.zip")
+}
+
+world<-readOGR( 
+  dsn=paste0(getwd(), "/Data"), 
+  layer="TM_WORLD_BORDERS_SIMPL-0.3",
+  verbose=FALSE
+)
+
+# Replace world_spdf@data with our data
+world@data<-world@data %>% 
+  select(ISO3) %>% 
+  rename(iso_code=ISO3) %>% 
+  left_join(data_today, by="iso_code")
+```
+We shall now plot the choropleth.
+```{r Leaflet Choropleth, warning=FALSE}
+mybins<-c(0, 10000, 50000, 100000, 500000, 10000000, 20000000, 40000000)
+mypal<-colorBin( palette="YlOrRd", domain=world@data$total_cases, na.color="transparent", bins=mybins)
+
+mytext<-paste(
+    "Country: ", world@data$location,"<br/>", 
+    "Total Cases: ", world@data$total_cases, "<br/>", 
+    "Total Deaths: ", world@data$total_deaths, "<br/>",
+    "Population: ", round(world@data$population, 2), 
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(world) %>% 
+  addTiles() %>%
+  addPolygons(fillColor=~mypal(total_cases), 
+              stroke=TRUE, 
+              fillOpacity=0.9,
+              color="white", 
+              smoothFactor=0.5,
+              weight=0.3, 
+              label=mytext, 
+              labelOptions=labelOptions( 
+      style = list("font-weight" = "normal", padding = "3px 8px"), 
+      textsize = "13px", 
+      direction = "auto"
+    )
+  ) %>% 
+  addLegend(pal=mypal, 
+            values=~total_cases, 
+            opacity=0.9, 
+            title=paste0("Number of Cases as of ", today()-2), 
+            position="bottomleft")
 ```
